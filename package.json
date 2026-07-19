@@ -1,0 +1,40 @@
+{
+  "name": "@f2b/sdk",
+  "version": "0.1.0",
+  "description": "灵境云官方 TypeScript/JavaScript SDK — AI 沙箱客户端",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke.ts",
+    "example": "tsx examples/quickstart.ts"
+  },
+  "dependencies": {
+    "@f2b/spec": "file:../f2b-spec"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/f2b-dev/f2b-sdk-js.git"
+  },
+  "keywords": [
+    "f2b",
+    "lingjing",
+    "sandbox",
+    "ai-agent"
+  ]
+}

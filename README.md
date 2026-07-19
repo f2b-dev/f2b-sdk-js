@@ -1,21 +1,71 @@
-# f2b-sdk-js
+# @f2b/sdk · f2b-sdk-js
 
-灵境云 / F2B 组织仓库骨架。详见组织设计与 [todo](https://github.com/f2b-dev)。
+灵境云官方 **TypeScript / JavaScript** SDK：创建沙箱 → 命令 → 文件 → 销毁。
 
-| 仓 | 角色 |
-|----|------|
-| f2b-web | 官网 + 控制台壳 + BFF + 产品插件 |
-| f2b-sdk-js | 官方 TypeScript SDK |
-| f2b-sdk-python | 官方 Python SDK |
-| f2b-mcp-gateway | MCP 网关 |
-| f2b-tunnel | 隧道代理 |
-| f2b-infra | 部署 / compose |
-| f2b-docs | 开发者文档 |
+## 安装（开发期）
 
-**本仓（f2b-sdk-js）**：待从迁移计划填充实现。当前仅占位，便于 org 可见与协作。
+```bash
+# 与 f2b-spec 同级克隆时
+pnpm add @f2b/sdk@file:../f2b-sdk-js
+# 或发布后
+# pnpm add @f2b/sdk
+```
 
-- 契约：https://github.com/f2b-dev/f2b-spec
-- 沙箱服务：https://github.com/f2b-dev/f2b-sandbox
-- 组织：https://github.com/f2b-dev
+## 60 秒 quickstart
+
+先启动 [f2b-sandbox](https://github.com/f2b-dev/f2b-sandbox)：
+
+```bash
+cd ../f2b-sandbox && F2B_SANDBOX_BACKEND=fake pnpm dev
+# → http://127.0.0.1:8787
+```
+
+```ts
+import { F2bClient, Sandbox } from "@f2b/sdk";
+
+const client = new F2bClient({
+  baseUrl: "http://127.0.0.1:8787", // 直连产品 API /v1
+  // apiKey: "lj_...",               // 鉴权就绪后
+});
+
+const sbx = await Sandbox.create(client, { template: "base" });
+const { stdout } = await sbx.run("echo hello");
+console.log(stdout);
+
+await sbx.write("/home/user/a.txt", "ok");
+console.log(await sbx.read("/home/user/a.txt"));
+await sbx.kill();
+```
+
+本仓：
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm smoke    # 需 :8787 已启动
+pnpm example
+```
+
+## API 路径
+
+| 配置 | 用途 |
+|------|------|
+| `baseUrl: http://127.0.0.1:8787`（默认 `pathPrefix: "/v1"`） | 直连 **f2b-sandbox** |
+| `baseUrl: http://127.0.0.1:3000` + 若 BFF 将来暴露 `/v1` | 经控制台同源 |
+| `pathPrefix: "/api"` | 兼容旧式 `/api/sandboxes` 代理 |
+
+浏览器控制台请走 **f2b-web BFF**，不要在前端塞管理密钥。SDK 适合 **Node / 服务端 / Agent 运行时**。
+
+## 导出
+
+- `F2bClient` / `LingjingClient`（别名）
+- `Sandbox`
+- `F2bError` / `ErrorCode`（来自 `@f2b/spec`）
+
+## 相关
+
+- 契约：https://github.com/f2b-dev/f2b-spec  
+- 沙箱服务：https://github.com/f2b-dev/f2b-sandbox  
+- 组织：https://github.com/f2b-dev  
 
 Apache-2.0
