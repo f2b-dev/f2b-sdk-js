@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout sdk-js
+        uses: actions/checkout@v4
+        with:
+          path: f2b-sdk-js
+
+      - name: Checkout f2b-spec
+        uses: actions/checkout@v4
+        with:
+          repository: f2b-dev/f2b-spec
+          path: f2b-spec
+
+      - name: Checkout f2b-sandbox
+        uses: actions/checkout@v4
+        with:
+          repository: f2b-dev/f2b-sandbox
+          path: f2b-sandbox
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+      - name: Install deps
+        run: |
+          pnpm install --frozen-lockfile --dir f2b-spec
+          pnpm install --frozen-lockfile --dir f2b-sandbox
+          pnpm install --frozen-lockfile --dir f2b-sdk-js
+
+      - name: Typecheck SDK
+        working-directory: f2b-sdk-js
+        run: pnpm typecheck
+
+      - name: Start sandbox (fake)
+        working-directory: f2b-sandbox
+        run: |
+          F2B_SANDBOX_BACKEND=fake F2B_AUTH_MODE=off PORT=8787 HOST=127.0.0.1 \
+            DATABASE_URL=file:./data/ci-sdk.db \
+            pnpm exec tsx src/server.ts &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8787/healthz && break
+            sleep 0.25
+          done
+          curl -sf http://127.0.0.1:8787/healthz
+
+      - name: SDK smoke
+        working-directory: f2b-sdk-js
+        env:
+          F2B_SANDBOX_URL: http://127.0.0.1:8787
+        run: pnpm smoke
