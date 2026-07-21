@@ -3,9 +3,11 @@ import {
   F2bError,
   type CommandResult,
   type CreateSandboxInput,
+  type CreateTunnelInput,
   type FileEntry,
   type SandboxRecord,
   type TemplateRef,
+  type TunnelRecord,
   type UsageSummary,
 } from "@f2b/spec";
 
@@ -22,6 +24,18 @@ export type F2bClientOptions = {
    * - 若只代理了 `/api/sandboxes` 的旧 BFF，可设为 `/api`
    */
   pathPrefix?: string;
+  /**
+   * 隧道服务根 URL（默认与 baseUrl 相同）。
+   * - 直连 f2b-tunnel：http://127.0.0.1:8790
+   * - 经 f2b-web BFF：http://127.0.0.1:13200 + tunnelPathPrefix=/api
+   */
+  tunnelBaseUrl?: string;
+  /**
+   * 隧道 API 路径前缀。
+   * - 默认 `/v1`（直连 f2b-tunnel）
+   * - BFF：`/api`（→ `/api/tunnels`）
+   */
+  tunnelPathPrefix?: string;
   /** 用户 API Key（鉴权就绪后使用）；开发期可省略 */
   apiKey?: string;
   fetchImpl?: typeof fetch;
@@ -44,6 +58,8 @@ async function parseJson<T>(res: Response): Promise<T> {
 export class F2bClient {
   private readonly baseUrl: string;
   private readonly pathPrefix: string;
+  private readonly tunnelBaseUrl: string;
+  private readonly tunnelPathPrefix: string;
   private readonly apiKey?: string;
   private readonly fetchImpl: typeof fetch;
 
@@ -51,6 +67,11 @@ export class F2bClient {
     this.baseUrl = opts.baseUrl.replace(/\/$/, "");
     const prefix = opts.pathPrefix ?? "/v1";
     this.pathPrefix = prefix.startsWith("/") ? prefix.replace(/\/$/, "") : `/${prefix}`;
+    this.tunnelBaseUrl = (opts.tunnelBaseUrl ?? opts.baseUrl).replace(/\/$/, "");
+    const tPrefix = opts.tunnelPathPrefix ?? "/v1";
+    this.tunnelPathPrefix = tPrefix.startsWith("/")
+      ? tPrefix.replace(/\/$/, "")
+      : `/${tPrefix}`;
     this.apiKey = opts.apiKey;
     this.fetchImpl = opts.fetchImpl ?? fetch;
   }
@@ -67,14 +88,20 @@ export class F2bClient {
     return sub ? `${base}${sub.startsWith("/") ? sub : `/${sub}`}` : base;
   }
 
-  private async request<T>(
+  private tunnelsPath(sub = ""): string {
+    const base = `${this.tunnelPathPrefix}/tunnels`;
+    return sub ? `${base}${sub.startsWith("/") ? sub : `/${sub}`}` : base;
+  }
+
+  private async requestAt<T>(
+    root: string,
     method: string,
     path: string,
     body?: unknown,
   ): Promise<T> {
     let res: Response;
     try {
-      res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      res = await this.fetchImpl(`${root}${path}`, {
         method,
         headers: this.headers(body !== undefined),
         body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -97,6 +124,14 @@ export class F2bClient {
       );
     }
     return data as T;
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
+    return this.requestAt<T>(this.baseUrl, method, path, body);
   }
 
   async listSandboxes(projectId?: string): Promise<SandboxRecord[]> {
@@ -144,6 +179,53 @@ export class F2bClient {
       `${this.pathPrefix}/templates`,
     );
     return data.templates ?? [];
+  }
+
+  /** 列出隧道（可按 sandboxId 过滤） */
+  async listTunnels(sandboxId?: string): Promise<TunnelRecord[]> {
+    const q = sandboxId
+      ? `?sandboxId=${encodeURIComponent(sandboxId)}`
+      : "";
+    const data = await this.requestAt<{ tunnels: TunnelRecord[] }>(
+      this.tunnelBaseUrl,
+      "GET",
+      `${this.tunnelsPath()}${q}`,
+    );
+    return data.tunnels ?? [];
+  }
+
+  /** 创建预览隧道（dev 可传 targetUrl） */
+  async createTunnel(
+    input: CreateTunnelInput | (Partial<CreateTunnelInput> & {
+      sandboxId: string;
+      port: number;
+    }),
+  ): Promise<TunnelRecord> {
+    const data = await this.requestAt<{ tunnel: TunnelRecord }>(
+      this.tunnelBaseUrl,
+      "POST",
+      this.tunnelsPath(),
+      input,
+    );
+    return data.tunnel;
+  }
+
+  async getTunnel(id: string): Promise<TunnelRecord> {
+    const data = await this.requestAt<{ tunnel: TunnelRecord }>(
+      this.tunnelBaseUrl,
+      "GET",
+      this.tunnelsPath(`/${encodeURIComponent(id)}`),
+    );
+    return data.tunnel;
+  }
+
+  async closeTunnel(id: string): Promise<TunnelRecord> {
+    const data = await this.requestAt<{ tunnel: TunnelRecord }>(
+      this.tunnelBaseUrl,
+      "DELETE",
+      this.tunnelsPath(`/${encodeURIComponent(id)}`),
+    );
+    return data.tunnel;
   }
 
   /** @internal */
@@ -261,8 +343,10 @@ export { F2bError, ErrorCode } from "@f2b/spec";
 export type {
   CommandResult,
   CreateSandboxInput,
+  CreateTunnelInput,
   FileEntry,
   SandboxRecord,
+  TunnelRecord,
   UsageDayBucket,
   UsageSummary,
 } from "@f2b/spec";
