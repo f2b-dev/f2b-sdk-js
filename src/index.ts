@@ -5,6 +5,7 @@ import {
   type CreateSandboxInput,
   type FileEntry,
   type SandboxRecord,
+  type UsageSummary,
 } from "@f2b/spec";
 
 export type F2bClientOptions = {
@@ -125,6 +126,16 @@ export class F2bClient {
     return new Sandbox(this, data.sandbox);
   }
 
+  /** 近 N 日用量聚合（UTC 日桶），默认 7 天 */
+  async getUsage(days = 7): Promise<UsageSummary> {
+    const n = Math.min(90, Math.max(1, Math.floor(days)));
+    const data = await this.request<{ usage: UsageSummary }>(
+      "GET",
+      `${this.pathPrefix}/usage?days=${n}`,
+    );
+    return data.usage;
+  }
+
   /** @internal */
   _request<T>(method: string, path: string, body?: unknown) {
     return this.request<T>(method, path, body);
@@ -224,4 +235,6 @@ export type {
   CreateSandboxInput,
   FileEntry,
   SandboxRecord,
+  UsageDayBucket,
+  UsageSummary,
 } from "@f2b/spec";

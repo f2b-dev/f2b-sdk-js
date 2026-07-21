@@ -37,6 +37,20 @@ async function main() {
   console.log("killed", killed.status);
   if (killed.status !== "killed") throw new Error("kill failed");
 
+  const usage = await client.getUsage(7);
+  console.log("usage", {
+    days: usage.days,
+    totalCommands: usage.totalCommands,
+    totalSandboxHours: usage.totalSandboxHours,
+    buckets: usage.byDay.length,
+  });
+  if (usage.days !== 7 || usage.byDay.length !== 7) {
+    throw new Error("usage buckets mismatch");
+  }
+  if (usage.totalCommands < 1) {
+    throw new Error("expected at least 1 command in usage");
+  }
+
   console.log("SDK_SMOKE_OK");
 }
 

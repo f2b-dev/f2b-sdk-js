@@ -35,6 +35,9 @@ console.log(stdout);
 await sbx.write("/home/user/a.txt", "ok");
 console.log(await sbx.read("/home/user/a.txt"));
 await sbx.kill();
+
+const usage = await client.getUsage(7);
+console.log(usage.totalSandboxHours, usage.totalCommands);
 ```
 
 本仓：
@@ -58,9 +61,9 @@ pnpm example
 
 ## 导出
 
-- `F2bClient` / `LingjingClient`（别名）
-- `Sandbox`
-- `F2bError` / `ErrorCode`（来自 `@f2b/spec`）
+- `F2bClient` / `LingjingClient`（别名）— `listSandboxes` / `createSandbox` / `getSandbox` / **`getUsage`**
+- `Sandbox` — `run` / `write` / `read` / `listFiles` / `kill`
+- `F2bError` / `ErrorCode` / `UsageSummary` 等类型（来自 `@f2b/spec`）
 
 ## 相关
 
