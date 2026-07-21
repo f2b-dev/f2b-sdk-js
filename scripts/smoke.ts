@@ -1,10 +1,10 @@
 /**
- * 直连 f2b-sandbox :8787 冒烟。需服务已启动：
+ * 直连 f2b-sandbox :13287 冒烟。需服务已启动：
  *   cd ../f2b-sandbox && F2B_SANDBOX_BACKEND=fake pnpm dev
  */
 import { F2bClient, Sandbox } from "../src/index";
 
-const baseUrl = process.env.F2B_SANDBOX_URL ?? "http://127.0.0.1:8787";
+const baseUrl = process.env.F2B_SANDBOX_URL ?? "http://127.0.0.1:13287";
 
 async function main() {
   const client = new F2bClient({ baseUrl });

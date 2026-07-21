@@ -10,8 +10,8 @@ import {
 export type F2bClientOptions = {
   /**
    * 沙箱 API 根 URL。
-   * - 直连 f2b-sandbox：http://127.0.0.1:8787
-   * - 经 f2b-web BFF：http://127.0.0.1:3000（路径仍为 /v1，见 pathPrefix）
+   * - 直连 f2b-sandbox：http://127.0.0.1:13287
+   * - 经 f2b-web BFF：http://127.0.0.1:13200（路径仍为 /v1，见 pathPrefix）
    */
   baseUrl: string;
   /**
