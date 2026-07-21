@@ -230,6 +230,24 @@ export class Sandbox {
     return this.record;
   }
 
+  async pause(): Promise<SandboxRecord> {
+    const data = await this.client._request<{ sandbox: SandboxRecord }>(
+      "POST",
+      this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/pause`),
+    );
+    this.record = data.sandbox;
+    return this.record;
+  }
+
+  async resume(): Promise<SandboxRecord> {
+    const data = await this.client._request<{ sandbox: SandboxRecord }>(
+      "POST",
+      this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/resume`),
+    );
+    this.record = data.sandbox;
+    return this.record;
+  }
+
   /** 便捷：创建沙箱 */
   static async create(
     client: F2bClient,
