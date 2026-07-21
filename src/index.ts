@@ -5,6 +5,7 @@ import {
   type CreateSandboxInput,
   type FileEntry,
   type SandboxRecord,
+  type TemplateRef,
   type UsageSummary,
 } from "@f2b/spec";
 
@@ -134,6 +135,15 @@ export class F2bClient {
       `${this.pathPrefix}/usage?days=${n}`,
     );
     return data.usage;
+  }
+
+  /** 预置模板目录（id 即创建时的 template） */
+  async listTemplates(): Promise<TemplateRef[]> {
+    const data = await this.request<{ templates: TemplateRef[] }>(
+      "GET",
+      `${this.pathPrefix}/templates`,
+    );
+    return data.templates ?? [];
   }
 
   /** @internal */
