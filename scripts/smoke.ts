@@ -22,6 +22,22 @@ async function main() {
     throw new Error("unexpected command result");
   }
 
+  const streamEvents: string[] = [];
+  const streamed = await sbx.runStream("echo stream-sdk", {
+    onEvent: (ev) => streamEvents.push(ev.type),
+  });
+  console.log("stream", {
+    exitCode: streamed.exitCode,
+    stdout: streamed.stdout.trim(),
+    events: streamEvents,
+  });
+  if (!streamed.stdout.includes("stream-sdk")) {
+    throw new Error("stream result missing marker");
+  }
+  if (!streamEvents.includes("result") && !streamEvents.includes("stdout")) {
+    throw new Error("expected stream events");
+  }
+
   await sbx.write("/home/user/sdk.txt", "from-sdk");
   const content = await sbx.read("/home/user/sdk.txt");
   console.log("file", content);

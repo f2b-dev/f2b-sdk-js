@@ -2,6 +2,7 @@ import {
   ErrorCode,
   F2bError,
   type CommandResult,
+  type CommandStreamEvent,
   type CreateSandboxInput,
   type CreateTunnelInput,
   type FileEntry,
@@ -237,6 +238,28 @@ export class F2bClient {
   _sandboxesPath(sub = "") {
     return this.sandboxesPath(sub);
   }
+
+  /**
+   * @internal 原始 POST（用于 SSE，不预解析 JSON body）
+   */
+  async _postRaw(path: string, body: unknown): Promise<Response> {
+    try {
+      return await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+          ...this.headers(true),
+          Accept: "text/event-stream, application/json",
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      throw new F2bError(
+        ErrorCode.BACKEND_UNAVAILABLE,
+        err instanceof Error ? err.message : "request failed",
+        { cause: err },
+      );
+    }
+  }
 }
 
 /** 灵境云品牌别名 */
@@ -275,6 +298,105 @@ export class Sandbox {
       { cmd, ...opts },
     );
     return data.result;
+  }
+
+  /**
+   * SSE 流式执行：`POST .../commands/stream`。
+   * onEvent 收到每个 stdout/stderr/result/error；最终 resolve 聚合 result。
+   */
+  async runStream(
+    cmd: string,
+    opts?: {
+      cwd?: string;
+      timeoutMs?: number;
+      env?: Record<string, string>;
+      onEvent?: (ev: CommandStreamEvent) => void;
+    },
+  ): Promise<CommandResult> {
+    const { onEvent, ...bodyOpts } = opts ?? {};
+    const res = await this.client._postRaw(
+      this.client._sandboxesPath(
+        `/${encodeURIComponent(this.id)}/commands/stream`,
+      ),
+      { cmd, ...bodyOpts },
+    );
+
+    if (!res.ok) {
+      const data = await parseJson<{ error?: ApiError }>(res);
+      const err = data?.error;
+      throw new F2bError(
+        (err?.code as (typeof ErrorCode)[keyof typeof ErrorCode]) ||
+          ErrorCode.INTERNAL,
+        err?.message || `HTTP ${res.status}`,
+        { status: res.status, details: err?.details },
+      );
+    }
+
+    const ctype = res.headers.get("content-type") ?? "";
+    if (!ctype.includes("text/event-stream")) {
+      const data = await parseJson<{
+        result?: CommandResult;
+        error?: ApiError;
+      }>(res);
+      if (data?.result) {
+        onEvent?.({ type: "result", result: data.result });
+        return data.result;
+      }
+      const err = data?.error;
+      throw new F2bError(
+        (err?.code as (typeof ErrorCode)[keyof typeof ErrorCode]) ||
+          ErrorCode.INTERNAL,
+        err?.message || "expected event-stream",
+        { status: res.status, details: err?.details },
+      );
+    }
+
+    if (!res.body) {
+      throw new F2bError(ErrorCode.INTERNAL, "empty SSE body");
+    }
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    let result: CommandResult | null = null;
+    let stdout = "";
+    let stderr = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop() ?? "";
+      for (const block of parts) {
+        const dataLine = block.split("\n").find((l) => l.startsWith("data: "));
+        if (!dataLine) continue;
+        const payload = dataLine.slice(6);
+        if (!payload || payload === "{}") continue;
+        let ev: CommandStreamEvent;
+        try {
+          ev = JSON.parse(payload) as CommandStreamEvent;
+        } catch {
+          continue;
+        }
+        if (ev.type === "stdout") stdout += ev.text ?? "";
+        if (ev.type === "stderr") stderr += ev.text ?? "";
+        if (ev.type === "result") result = ev.result;
+        if (ev.type === "error") {
+          throw new F2bError(
+            (ev.code as (typeof ErrorCode)[keyof typeof ErrorCode]) ||
+              ErrorCode.INTERNAL,
+            ev.message || "stream error",
+          );
+        }
+        onEvent?.(ev);
+      }
+    }
+
+    if (!result) {
+      result = { exitCode: 0, stdout, stderr, durationMs: 0 };
+    }
+    return result;
   }
 
   async write(path: string, content: string): Promise<void> {
@@ -342,6 +464,7 @@ export class Sandbox {
 export { F2bError, ErrorCode } from "@f2b/spec";
 export type {
   CommandResult,
+  CommandStreamEvent,
   CreateSandboxInput,
   CreateTunnelInput,
   FileEntry,

@@ -61,9 +61,9 @@ pnpm example
 
 ## 导出
 
-- `F2bClient` / `LingjingClient`（别名）— `listSandboxes` / `createSandbox` / `getSandbox` / **`getUsage`**
-- `Sandbox` — `run` / `write` / `read` / `listFiles` / `kill`
-- `F2bError` / `ErrorCode` / `UsageSummary` 等类型（来自 `@f2b/spec`）
+- `F2bClient` / `LingjingClient`（别名）— `listSandboxes` / `createSandbox` / `getSandbox` / `getUsage` / `listTemplates` / 隧道
+- `Sandbox` — `run` / **`runStream`**（SSE）/ `write` / `read` / `listFiles` / `pause` / `resume` / `kill`
+- `F2bError` / `ErrorCode` / `CommandStreamEvent` / `UsageSummary` 等（来自 `@f2b/spec`）
 
 ## 相关
 
