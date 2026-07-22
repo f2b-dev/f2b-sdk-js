@@ -21,7 +21,7 @@
     "pack:check": "bash scripts/pack-check.sh"
   },
   "dependencies": {
-    "@f2b/spec": ">=0.1.0 <2"
+    "@f2b/spec": "file:../f2b-spec"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
