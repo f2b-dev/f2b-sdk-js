@@ -422,22 +422,51 @@ export class Sandbox {
     return result;
   }
 
-  async write(path: string, content: string): Promise<void> {
+  /**
+   * 写文件。默认 utf8 文本；`encoding: "base64"` 时 content 为 base64 字符串。
+   * 也可直接传 Uint8Array / Buffer，自动按 base64 上传。
+   */
+  async write(
+    path: string,
+    content: string | Uint8Array,
+    opts?: { encoding?: "utf8" | "base64" },
+  ): Promise<void> {
+    let bodyContent: string;
+    let encoding: "utf8" | "base64" = opts?.encoding ?? "utf8";
+    if (typeof content !== "string") {
+      encoding = "base64";
+      bodyContent = Buffer.from(content).toString("base64");
+    } else {
+      bodyContent = content;
+    }
     await this.client._request(
       "POST",
       this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/files`),
-      { path, content, encoding: "utf8" },
+      { path, content: bodyContent, encoding },
     );
   }
 
-  async read(path: string): Promise<string> {
+  /**
+   * 读文件。默认返回 utf8 字符串；`encoding: "base64"` 返回 base64 文本。
+   */
+  async read(
+    path: string,
+    opts?: { encoding?: "utf8" | "base64" },
+  ): Promise<string> {
+    const encoding = opts?.encoding ?? "utf8";
     const data = await this.client._request<{
       file: { content: string; encoding: string };
     }>(
       "GET",
-      `${this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/files`)}?path=${encodeURIComponent(path)}&encoding=utf8`,
+      `${this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/files`)}?path=${encodeURIComponent(path)}&encoding=${encoding}`,
     );
     return data.file.content;
+  }
+
+  /** 以二进制读取文件 */
+  async readBytes(path: string): Promise<Uint8Array> {
+    const b64 = await this.read(path, { encoding: "base64" });
+    return new Uint8Array(Buffer.from(b64, "base64"));
   }
 
   async listFiles(path = "/home/user"): Promise<FileEntry[]> {

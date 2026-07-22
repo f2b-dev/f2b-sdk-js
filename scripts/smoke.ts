@@ -43,6 +43,18 @@ async function main() {
   console.log("file", content);
   if (content !== "from-sdk") throw new Error("file mismatch");
 
+  const bin = Uint8Array.from([0x00, 0x01, 0xfe, 0xff]);
+  await sbx.write("/home/user/sdk.bin", bin);
+  const b64 = await sbx.read("/home/user/sdk.bin", { encoding: "base64" });
+  const round = await sbx.readBytes("/home/user/sdk.bin");
+  if (Buffer.from(b64, "base64").compare(Buffer.from(bin)) !== 0) {
+    throw new Error(`base64 read mismatch: ${b64}`);
+  }
+  if (Buffer.from(round).compare(Buffer.from(bin)) !== 0) {
+    throw new Error("readBytes mismatch");
+  }
+  console.log("file base64 ok", b64);
+
   const entries = await sbx.listFiles("/home/user");
   console.log(
     "list",
