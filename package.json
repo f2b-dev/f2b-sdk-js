@@ -16,6 +16,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
+    "smoke:bff": "tsx scripts/smoke-bff-path.ts",
     "example": "tsx examples/quickstart.ts"
   },
   "dependencies": {

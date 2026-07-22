@@ -70,3 +70,11 @@ jobs:
         env:
           F2B_SANDBOX_URL: http://127.0.0.1:8787
         run: pnpm smoke
+
+      # pathPrefix=/api 需 BFF；未起 web 时 smoke:bff 会 SKIP（exit 0）
+      - name: SDK BFF pathPrefix smoke (skip if no web)
+        working-directory: f2b-sdk-js
+        env:
+          F2B_BFF_URL: http://127.0.0.1:13200
+        run: pnpm smoke:bff
+        continue-on-error: false
