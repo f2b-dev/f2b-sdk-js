@@ -48,6 +48,11 @@ jobs:
         working-directory: f2b-sdk-js
         run: pnpm typecheck
 
+      # 1.0 前只 pack 审阅，禁止 publish
+      - name: pack:check (no publish)
+        working-directory: f2b-sdk-js
+        run: pnpm pack:check
+
       - name: Start sandbox (fake)
         working-directory: f2b-sandbox
         run: |

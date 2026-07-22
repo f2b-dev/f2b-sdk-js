@@ -7,6 +7,7 @@
 
 ### Added
 
+- `pnpm pack:check`：1.0 前 tarball 审阅（不 publish）
 - `pnpm smoke:bff`：`pathPrefix=/api` 双路径冒烟（无 BFF 时 SKIP）
 
 ## [0.1.0] - 2026-07
