@@ -32,7 +32,7 @@ jobs:
           repository: f2b-dev/f2b-sandbox
           path: f2b-sandbox
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
 
