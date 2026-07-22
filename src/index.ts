@@ -439,6 +439,19 @@ export class Sandbox {
     return data.entries;
   }
 
+  /** 删除文件；目录传 recursive: true */
+  async deleteFile(
+    path: string,
+    opts?: { recursive?: boolean },
+  ): Promise<void> {
+    const q = new URLSearchParams({ path });
+    if (opts?.recursive) q.set("recursive", "1");
+    await this.client._request(
+      "DELETE",
+      `${this.client._sandboxesPath(`/${encodeURIComponent(this.id)}/files`)}?${q.toString()}`,
+    );
+  }
+
   async kill(): Promise<SandboxRecord> {
     const data = await this.client._request<{ sandbox: SandboxRecord }>(
       "DELETE",
