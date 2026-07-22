@@ -461,6 +461,31 @@ export class Sandbox {
     );
   }
 
+  /** 创建目录；默认 recursive */
+  async mkdir(
+    path: string,
+    opts?: { recursive?: boolean },
+  ): Promise<void> {
+    await this.client._request(
+      "POST",
+      this.client._sandboxesPath(
+        `/${encodeURIComponent(this.id)}/files/mkdir`,
+      ),
+      { path, recursive: opts?.recursive !== false },
+    );
+  }
+
+  /** 重命名或移动文件/目录 */
+  async rename(from: string, to: string): Promise<void> {
+    await this.client._request(
+      "POST",
+      this.client._sandboxesPath(
+        `/${encodeURIComponent(this.id)}/files/rename`,
+      ),
+      { from, to },
+    );
+  }
+
   async kill(): Promise<SandboxRecord> {
     const data = await this.client._request<{ sandbox: SandboxRecord }>(
       "DELETE",
