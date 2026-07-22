@@ -9,6 +9,7 @@ import {
   type SandboxRecord,
   type TemplateRef,
   type TunnelRecord,
+  type UpdateSandboxInput,
   type UsageSummary,
 } from "@f2b/spec";
 
@@ -159,6 +160,19 @@ export class F2bClient {
     const data = await this.request<{ sandbox: SandboxRecord }>(
       "GET",
       this.sandboxesPath(`/${encodeURIComponent(id)}`),
+    );
+    return new Sandbox(this, data.sandbox);
+  }
+
+  /** 延期 timeoutMs / 合并 metadata（活动沙箱） */
+  async updateSandbox(
+    id: string,
+    input: UpdateSandboxInput,
+  ): Promise<Sandbox> {
+    const data = await this.request<{ sandbox: SandboxRecord }>(
+      "PATCH",
+      this.sandboxesPath(`/${encodeURIComponent(id)}`),
+      input,
     );
     return new Sandbox(this, data.sandbox);
   }
@@ -452,6 +466,13 @@ export class Sandbox {
     return this.record;
   }
 
+  /** 延期 timeout / 合并 metadata */
+  async update(input: UpdateSandboxInput): Promise<SandboxRecord> {
+    const sb = await this.client.updateSandbox(this.id, input);
+    this.record = sb.data;
+    return this.record;
+  }
+
   /** 便捷：创建沙箱 */
   static async create(
     client: F2bClient,
@@ -470,6 +491,7 @@ export type {
   FileEntry,
   SandboxRecord,
   TunnelRecord,
+  UpdateSandboxInput,
   UsageDayBucket,
   UsageSummary,
 } from "@f2b/spec";
