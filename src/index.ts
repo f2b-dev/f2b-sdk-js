@@ -136,8 +136,17 @@ export class F2bClient {
     return this.requestAt<T>(this.baseUrl, method, path, body);
   }
 
-  async listSandboxes(projectId?: string): Promise<SandboxRecord[]> {
-    const q = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+  async listSandboxes(
+    projectIdOrOpts?: string | { projectId?: string; status?: string },
+  ): Promise<SandboxRecord[]> {
+    const opts =
+      typeof projectIdOrOpts === "string"
+        ? { projectId: projectIdOrOpts }
+        : projectIdOrOpts ?? {};
+    const sp = new URLSearchParams();
+    if (opts.projectId) sp.set("projectId", opts.projectId);
+    if (opts.status) sp.set("status", opts.status);
+    const q = sp.toString() ? `?${sp.toString()}` : "";
     const data = await this.request<{ sandboxes: SandboxRecord[] }>(
       "GET",
       `${this.sandboxesPath()}${q}`,
